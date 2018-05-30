@@ -6,15 +6,22 @@
 #include "MapReduceClient.h"
 #include <atomic>
 #include <vector>
+#include <pthread.h>
+
 
 struct ThreadContext{
     int threadId;
+    int MT;
     Barrier * barrier;
     std::atomic<int>* atomicIndex;
     std::vector <IntermediateVec> vecOfVec;
-    
+
     // , inVector, outVector, intermidiateVectorVector, queue, semaphore
 }
+
+struct MapContext{
+    
+};
 
 void emit2 (K2* key, V2* value, void* context){
 
@@ -23,9 +30,28 @@ void emit3 (K3* key, V3* value, void* context){
 
 }
 
+void* threadLogic (void* context){
+    ThreadContext* tc = (ThreadContext*) context;
+    int currentIndex;
+    while(++*(tc->atomicIndex) < tc->MT) {
+        currentIndex = *(tc->atomicIndex);
 
+    }
+    return 0;
+
+}
 void runMapReduceFramework(const MapReduceClient& client,
                            const InputVec& inputVec, OutputVec& outputVec,
                            int multiThreadLevel){
+    pthread_t threads[multiThreadLevel];
+    ThreadContext contexts[multiThreadLevel];
+    Barrier barrier(multiThreadLevel);
+    std::atomic<int> atomicIndex(0);
+    for (int i = 0; i < multiThreadLevel; ++i) {
+        //todo add initial of vec
+        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, };
+
+    }
+
 
 }
