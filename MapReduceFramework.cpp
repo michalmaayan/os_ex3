@@ -4,11 +4,16 @@
 
 #include "Barrier.h"
 #include "MapReduceClient.h"
+#include <atomic>
+#include <vector>
 
 struct ThreadContext{
     int threadId;
     Barrier * barrier;
-    // , *atomicIndex, inVector, outVector, intermidiateVectorVector, queue, semaphore
+    std::atomic<int>* atomicIndex;
+    std::vector <IntermediateVec> vecOfVec;
+    
+    // , inVector, outVector, intermidiateVectorVector, queue, semaphore
 }
 
 void emit2 (K2* key, V2* value, void* context){
