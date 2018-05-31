@@ -7,6 +7,7 @@
 #include <atomic>
 #include <vector>
 #include <pthread.h>
+#include <iostream>
 
 
 typedef struct ThreadContext{
@@ -37,14 +38,13 @@ void emit3 (K3* key, V3* value, void* context){
 
 void* threadLogic (void* context){
     auto* tc = (ThreadContext*) context;
-    int oldValue;
-    while(++*(tc->atomicIndex) < tc->MT) {
-        oldValue = *(tc->atomicIndex) - 1;
+    int oldValue = *(tc->atomicIndex)++ ;
+    while(oldValue < tc->MT) {
         auto k1 = tc->inputVec->at(oldValue).first;
         auto v1 = tc->inputVec->at(oldValue).second;
         MapContext mapContext = {(tc->arrayOfInterVec)[oldValue]};
         tc->client->map(k1, v1, &mapContext);
-
+        oldValue = *(tc->atomicIndex)++;
     }
     return 0;
 
@@ -61,8 +61,10 @@ void runMapReduceFramework(const MapReduceClient& client,
         arrayOfInterVec[i] = new IntermediateVec;
     }
     for (int i = 0; i < multiThreadLevel; ++i) {
-        //todo add initial of vec
         contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &inputVec, &outputVec, arrayOfInterVec, &client};
+    }
+    for (int i = 0; i < multiThreadLevel; ++i) {
+        pthread_create(threads + i, NULL, threadLogic, contexts + i);
     }
 
 
