@@ -40,6 +40,24 @@ bool comperator(IntermediatePair &p1, IntermediatePair &p2){
     return (*p1.first < *p2.first);
 }
 
+bool check_empty(IntermediateVec **arr, int MT){
+    for (int i = 0; i < MT; ++i) {
+        if (not(*(arr[i])).empty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void find_max_K2(IntermediateVec **arr, int MT, int max){
+    for (int i = 0; i < MT; ++i) {
+        auto temp = (*(arr[i]));
+        if (1<2) {
+
+        }
+    }
+}
+
 void* threadLogic (void* context){
     auto* tc = (ThreadContext*) context;
     int oldValue = (*(tc->atomicIndex))++ ;
@@ -63,7 +81,12 @@ void* threadLogic (void* context){
 //    std::cout<<"threadID: "<<tc->threadId<<"\n";
     //shuffle
     if(tc->threadId == 0) {
-        std::cout<<"bla";
+        bool isEmpty = check_empty(tc->arrayOfInterVec, tc->MT);
+        while(not isEmpty){
+
+            find_max_K2(tc->arrayOfInterVec, tc->MT, )
+            std::cout<<"threadID: "<<tc->threadId<<"\n";
+        }
     }
 
     //barrier
