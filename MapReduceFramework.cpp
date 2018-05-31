@@ -14,10 +14,10 @@ struct ThreadContext{
     int MT;
     Barrier * barrier;
     std::atomic<int>* atomicIndex;
-    InputVec inputVec;
-    OutputVec outputVec;
-    IntermediateVec vecOfVec;
-    MapReduceClient* client;
+    const InputVec* inputVec;
+    OutputVec* outputVec;
+    IntermediateVec* vecOfVec;
+    const MapReduceClient* client;
 
     // , inVector, outVector, intermidiateVectorVector, queue, semaphore
 };
@@ -51,9 +51,10 @@ void runMapReduceFramework(const MapReduceClient& client,
     ThreadContext contexts[multiThreadLevel];
     Barrier barrier(multiThreadLevel);
     std::atomic<int> atomicIndex(0);
+    IntermediateVec intermediateVec;
     for (int i = 0; i < multiThreadLevel; ++i) {
         //todo add initial of vec
-        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &inputVec, &outputVec};
+        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &inputVec, &outputVec, &intermediateVec, &client};
 
     }
 
