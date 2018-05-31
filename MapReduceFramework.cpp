@@ -14,10 +14,13 @@ struct ThreadContext{
     int MT;
     Barrier * barrier;
     std::atomic<int>* atomicIndex;
-    std::vector <IntermediateVec> vecOfVec;
+    InputVec inputVec;
+    OutputVec outputVec;
+    IntermediateVec vecOfVec;
+    MapReduceClient* client;
 
     // , inVector, outVector, intermidiateVectorVector, queue, semaphore
-}
+};
 
 struct MapContext{
     
@@ -32,9 +35,10 @@ void emit3 (K3* key, V3* value, void* context){
 
 void* threadLogic (void* context){
     ThreadContext* tc = (ThreadContext*) context;
-    int currentIndex;
+    int oldValue;
     while(++*(tc->atomicIndex) < tc->MT) {
-        currentIndex = *(tc->atomicIndex);
+        oldValue = *(tc->atomicIndex) - 1;
+        map();
 
     }
     return 0;
@@ -49,7 +53,7 @@ void runMapReduceFramework(const MapReduceClient& client,
     std::atomic<int> atomicIndex(0);
     for (int i = 0; i < multiThreadLevel; ++i) {
         //todo add initial of vec
-        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, };
+        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &inputVec, &outputVec};
 
     }
 
