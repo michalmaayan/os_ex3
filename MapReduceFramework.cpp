@@ -73,7 +73,6 @@ bool is_eq(K2 *max, IntermediatePair &p){
     if (*p.first < *p.first){
 
     }
-    std::cout<<"checkeq5\n";
     if(not(*max < *p.first)){
         std::cout<<"checkeq4\n";
         if(not(*p.first < *max)){
@@ -112,10 +111,13 @@ void* threadLogic (void* context){
                 // in case the vector isn't empty
                 if (not(*(tc->arrayOfInterVec[i])).empty()) {
                     std::cout<<(*(tc->arrayOfInterVec[i])).empty()<<"\n";
-                    std::cout<<(*(tc->arrayOfInterVec[i])).empty()<<"\n";
+                    std::cout<<"threadID: "<<tc->threadId<<"\n";
                     while(is_eq(max, (*(tc->arrayOfInterVec[i])).back())) {
                         (*sameKey).emplace_back((*(tc->arrayOfInterVec[i])).back());
                         (*(tc->arrayOfInterVec[i])).pop_back();
+                        if ((*(tc->arrayOfInterVec[i])).empty()){
+                            break;
+                        }
                     }
                  }
             }
@@ -127,7 +129,6 @@ void* threadLogic (void* context){
             tc->Queue->push_back(sameKey);
             sem_post(tc->mutexQueue);
             sem_post(tc->fillCount);
-            std::cout<<"threadID: "<<tc->threadId<<"\n";
         }
         for (int i = 0; i < tc->MT; ++i) {
             sem_post(tc->fillCount);
