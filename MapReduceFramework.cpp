@@ -43,14 +43,15 @@ bool comperator(IntermediatePair p1, IntermediatePair p2){
 
 void* threadLogic (void* context){
     auto* tc = (ThreadContext*) context;
-    int oldValue = *(tc->atomicIndex)++ ;
+    int oldValue = (*(tc->atomicIndex))++ ;
     //map logic
     while(oldValue < tc->inputVec->size()) {
         auto k1 = tc->inputVec->at(oldValue).first;
         auto v1 = tc->inputVec->at(oldValue).second;
         MapContext mapContext = {(tc->arrayOfInterVec)[tc->threadId]};
         tc->client->map(k1, v1, &mapContext);
-        oldValue = *(tc->atomicIndex)++;
+        oldValue = (*(tc->atomicIndex))++;
+        std::cout<<"old value: "<<oldValue<<"\n";
     }
     //sort
     auto tempVec = (tc->arrayOfInterVec)[tc->threadId];
