@@ -31,19 +31,19 @@ typedef struct MapContext{
 void emit2 (K2* key, V2* value, void* context){
     auto* tc = (MapContext*) context;
     tc->interVector->emplace_back(key, value);
-    std::cout<<"bla\n";
 }
 void emit3 (K3* key, V3* value, void* context){
 
 }
 
-bool comperator(IntermediatePair p1, IntermediatePair p2){
-    return (p1.first<p2.first);
+bool comperator(IntermediatePair &p1, IntermediatePair &p2){
+    return (*p1.first < *p2.first);
 }
 
 void* threadLogic (void* context){
     auto* tc = (ThreadContext*) context;
     int oldValue = (*(tc->atomicIndex))++ ;
+
     //map logic
     while(oldValue < tc->inputVec->size()) {
         auto k1 = tc->inputVec->at(oldValue).first;
@@ -51,13 +51,16 @@ void* threadLogic (void* context){
         MapContext mapContext = {(tc->arrayOfInterVec)[tc->threadId]};
         tc->client->map(k1, v1, &mapContext);
         oldValue = (*(tc->atomicIndex))++;
-        std::cout<<"old value: "<<oldValue<<"\n";
+//        std::cout<<"old value: "<<oldValue<<"\n";
     }
+//    std::cout<<"before sort: "<<"\n";
+//    std::cout<<"threadID: "<<tc->threadId<<"\n";
     //sort
     auto tempVec = (tc->arrayOfInterVec)[tc->threadId];
     std::sort (tempVec->begin(), tempVec->end(), comperator);
     tc->barrier->barrier();
-
+//    std::cout<<"after sort: "<<"\n";
+//    std::cout<<"threadID: "<<tc->threadId<<"\n";
     //shuffle
     if(tc->threadId == 0) {
         std::cout<<"bla";
