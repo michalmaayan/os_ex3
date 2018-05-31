@@ -11,6 +11,8 @@
 #include <algorithm>    // std::sort
 #include <semaphore.h>
 
+#define ST 1
+
 typedef struct ThreadContext{
     int threadId;
     int MT;
@@ -45,7 +47,7 @@ bool comperator(IntermediatePair &p1, IntermediatePair &p2){
 
 bool check_empty_find_max(IntermediateVec **arr, int MT, K2 **max){
     bool isEmpty = true;
-    for (int i = 0; i < MT; ++i) {
+    for (int i = ST; i < MT; ++i) {
         if (not(*(arr[i])).empty()) {
             isEmpty = false;
             if(*max == nullptr){
@@ -101,13 +103,13 @@ void* threadLogic (void* context){
     tc->barrier->barrier();
 
     //shuffle
-    if(tc->threadId == 0) {
+    if(tc->threadId == ST) {
         // initial K2
         K2* max = nullptr;
         bool isEmpty = check_empty_find_max(tc->arrayOfInterVec, tc->MT, &max);
         while(not isEmpty){
             IntermediateVec *sameKey = new IntermediateVec;
-            for (int i = 0; i < tc->MT; ++i) {
+            for (int i = ST; i < tc->MT; ++i) {
                 // in case the vector isn't empty
                 if (not(*(tc->arrayOfInterVec[i])).empty()) {
                     std::cout<<(*(tc->arrayOfInterVec[i])).empty()<<"\n";
@@ -130,7 +132,7 @@ void* threadLogic (void* context){
             sem_post(tc->mutexQueue);
             sem_post(tc->fillCount);
         }
-        for (int i = 0; i < tc->MT; ++i) {
+        for (int i = ST; i < tc->MT; ++i) {
             sem_post(tc->fillCount);
         }
         *(tc->flag) = false;
@@ -159,17 +161,17 @@ void runMapReduceFramework(const MapReduceClient& client,
     sem_init(&mutexQueue, 0, 1);
     sem_init(&fillCount, 0, 0);
 
-    for (int i = 0; i < multiThreadLevel; ++i) {
+    for (int i = ST; i < multiThreadLevel; ++i) {
         arrayOfInterVec[i] = new IntermediateVec;
     }
-    for (int i = 0; i < multiThreadLevel; ++i) {
+    for (int i = ST; i < multiThreadLevel; ++i) {
         contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &inputVec, &outputVec, arrayOfInterVec, &client,
                        &Queue, &flag, &mutexQueue, &fillCount};
     }
-    for (int i = 0; i < multiThreadLevel; ++i) {
+    for (int i = ST; i < multiThreadLevel; ++i) {
         pthread_create(threads + i, NULL, threadLogic, contexts + i);
     }
-    for (int i = 0; i < multiThreadLevel; ++i) {
+    for (int i = ST; i < multiThreadLevel; ++i) {
         pthread_join(threads[i], NULL);
     }
 
