@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <iostream>
 #include <algorithm>    // std::sort
+#include <semaphore.h>
 
 typedef struct ThreadContext{
     int threadId;
@@ -19,8 +20,10 @@ typedef struct ThreadContext{
     OutputVec* outputVec;
     IntermediateVec **arrayOfInterVec;
     const MapReduceClient* client;
-
-    // , inVector, outVector, intermidiateVectorVector, queue, semaphore
+    std::vector <IntermediateVec*> *Queue;
+    std::atomic<bool>* flag;
+    sem_t *mutexQueue;
+    sem_t *cvQueue;
 }ThreadContext;
 
 typedef struct MapContext{
@@ -40,22 +43,32 @@ bool comperator(IntermediatePair &p1, IntermediatePair &p2){
     return (*p1.first < *p2.first);
 }
 
-bool check_empty(IntermediateVec **arr, int MT){
+bool check_empty_find_max(IntermediateVec **arr, int MT, K2 **max){
+    bool isEmpty = true;
     for (int i = 0; i < MT; ++i) {
         if (not(*(arr[i])).empty()) {
-            return false;
+            isEmpty = false;
+            if(*max == nullptr){
+                *max = (*(arr[i])).back().first;
+            }
+            else{
+                if(*max < (*(arr[i])).back().first)
+                {
+                    *max = (*(arr[i])).back().first;
+                }
+            }
         }
     }
-    return true;
+    return isEmpty;
 }
 
-void find_max_K2(IntermediateVec **arr, int MT, int max){
-    for (int i = 0; i < MT; ++i) {
-        auto temp = (*(arr[i]));
-        if (1<2) {
-
+bool is_eq(K2 *max, IntermediatePair &p){
+    if(not(*max < *p.first)){
+        if(not(*p.first < *max)){
+            return true;
         }
     }
+    return false;
 }
 
 void* threadLogic (void* context){
@@ -69,24 +82,38 @@ void* threadLogic (void* context){
         MapContext mapContext = {(tc->arrayOfInterVec)[tc->threadId]};
         tc->client->map(k1, v1, &mapContext);
         oldValue = (*(tc->atomicIndex))++;
-//        std::cout<<"old value: "<<oldValue<<"\n";
     }
-//    std::cout<<"before sort: "<<"\n";
-//    std::cout<<"threadID: "<<tc->threadId<<"\n";
+
     //sort
     auto tempVec = (tc->arrayOfInterVec)[tc->threadId];
     std::sort (tempVec->begin(), tempVec->end(), comperator);
     tc->barrier->barrier();
-//    std::cout<<"after sort: "<<"\n";
-//    std::cout<<"threadID: "<<tc->threadId<<"\n";
+
     //shuffle
     if(tc->threadId == 0) {
-        bool isEmpty = check_empty(tc->arrayOfInterVec, tc->MT);
+        // initial K2
+        K2* max = nullptr;
+        bool isEmpty = check_empty_find_max(tc->arrayOfInterVec, tc->MT, &max);
         while(not isEmpty){
+            IntermediateVec *sameKey = new IntermediateVec;
+            for (int i = 0; i < tc->MT; ++i) {
+                // in case the vector isn't empty
+                if (not(*(tc->arrayOfInterVec[i])).empty()) {
+                    while(is_eq(max, (*(tc->arrayOfInterVec[i])).back())) {
+                        (*sameKey).emplace_back((*(tc->arrayOfInterVec[i])).back());
+                        (*(tc->arrayOfInterVec[i])).pop_back();
+                    }
+                 }
+            }
+            max = nullptr;
+            isEmpty = check_empty_find_max(tc->arrayOfInterVec, tc->MT, &max);
 
-            find_max_K2(tc->arrayOfInterVec, tc->MT, )
+            //add to queue using semaphore
+
+            tc->Queue->push_back(sameKey);
             std::cout<<"threadID: "<<tc->threadId<<"\n";
         }
+        tc->flag = false;
     }
 
     //barrier
@@ -102,12 +129,17 @@ void runMapReduceFramework(const MapReduceClient& client,
     ThreadContext contexts[multiThreadLevel];
     Barrier barrier(multiThreadLevel);
     std::atomic<int> atomicIndex(0);
+    std::atomic<bool> flag(true);
     IntermediateVec* arrayOfInterVec[multiThreadLevel];
+    std::vector <IntermediateVec*> Queue;
+    sem_t mutexQueue;
+    sem_t  cvQueue;
     for (int i = 0; i < multiThreadLevel; ++i) {
         arrayOfInterVec[i] = new IntermediateVec;
     }
     for (int i = 0; i < multiThreadLevel; ++i) {
-        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &inputVec, &outputVec, arrayOfInterVec, &client};
+        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &inputVec, &outputVec, arrayOfInterVec, &client,
+                       &Queue, &flag, &mutexQueue, &cvQueue};
     }
     for (int i = 0; i < multiThreadLevel; ++i) {
         pthread_create(threads + i, NULL, threadLogic, contexts + i);
