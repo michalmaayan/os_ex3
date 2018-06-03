@@ -112,9 +112,6 @@ void* threadLogic (void* context){
             for (int i = ST; i < tc->MT; ++i) {
                 // in case the vector isn't empty
                 if (not(*(tc->arrayOfInterVec[i])).empty()) {
-                //todo delete
-//                    std::cout<<(*(tc->arrayOfInterVec[i])).empty()<<"\n";
-//                    std::cout<<"threadID: "<<tc->threadId<<"\n";
                     while(is_eq(max, (*(tc->arrayOfInterVec[i])).back())) {
                         (*sameKey).emplace_back((*(tc->arrayOfInterVec[i])).back());
                         (*(tc->arrayOfInterVec[i])).pop_back();
@@ -143,31 +140,18 @@ void* threadLogic (void* context){
 
     //reduce
     while(true){
-        int index = (*(tc->atomicIndex))++ ;
-        if (index < tc->Queue->size())
-        {
-            sem_wait(tc->fillCount);
-            // check flag again - for end of shuffle
+        sem_wait(tc->fillCount);
+        auto index = (*(tc->reduceAtomic))++ ;
+        if (index < tc->Queue->size()) {
             sem_wait(tc->mutexQueue);
-            if (not((*(tc->Queue)).empty())){
-
-                //if the queue empty unlock and exit
-                auto pairs = tc->Queue->back();
-                //pop
-
-                ReduceContext reduceContext = {tc->outputVec, tc->outAtomicIndex};
-                tc->client->reduce(pairs, &reduceContext);
-                sem_post(tc->mutexQueue);
-                std::cout<<"threadID: "<<tc->threadId<<"\n";
-            }
+            auto pairs = (*(tc->Queue)).at(index);
+            ReduceContext reduceContext = {tc->outputVec, tc->outAtomicIndex};
+            tc->client->reduce(pairs, &reduceContext);
+            sem_post(tc->mutexQueue);
+        } else{
             break;
-
         }
-
     }
-
-
-
     return 0;
 }
 
