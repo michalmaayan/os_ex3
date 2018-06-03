@@ -112,31 +112,11 @@ void* threadLogic (void* context) {
     //sort
     auto tempVec = (tc->arrayOfInterVec)[tc->threadId];
     std::sort(tempVec->begin(), tempVec->end(), comperator);
-//    //DEBUG
-//    if (tc->threadId == 1) {
-//            if (((*(tc->arrayOfInterVec[tc->threadId])).size() > 1)){
-//                printf("started if\n");
-//            for (unsigned long i = 0; i < ((*(tc->arrayOfInterVec[tc->threadId])).size() - 1); ++i) {
-//                bool check = comperator((*(tc->arrayOfInterVec[tc->threadId])).at(i),
-//                                        (*(tc->arrayOfInterVec[tc->threadId])).at(i + 1));
-//                if (not check) {
-//                    bool check2 = is_eq((*(tc->arrayOfInterVec[tc->threadId])).at(i).first,
-//                                            (*(tc->arrayOfInterVec[tc->threadId])).at(i + 1));
-//                    if (not check2){
-//                        printf("FALSE MADERFACKER\n");
-//                    }
-//                }
-//            }
+//    if (tc->threadId == 2) {
+//        for (IntermediatePair &pair: *(tc->arrayOfInterVec)[tc->threadId]) {
+//            printIntermediatePair(&pair);
 //        }
-//            else {
-//                printf("empty itermidiate\n");
-//            }
 //    }
-    if (tc->threadId == 2) {
-        for (IntermediatePair &pair: *(tc->arrayOfInterVec)[tc->threadId]) {
-            printIntermediatePair(&pair);
-        }
-    }
     tc->barrier->barrier();
 
 
@@ -151,7 +131,7 @@ void* threadLogic (void* context) {
                 // in case the vector isn't empty
                 if (not(*(tc->arrayOfInterVec[i])).empty()) {
                     while(is_eq(max, (*(tc->arrayOfInterVec[i])).back())) {
-                        printInterVector(tc->arrayOfInterVec, tc->MT);
+//                        printInterVector(tc->arrayOfInterVec, tc->MT);
                         (*sameKey).emplace_back((*(tc->arrayOfInterVec[i])).back());
                         (*(tc->arrayOfInterVec[i])).pop_back();
                         //check emptyness again

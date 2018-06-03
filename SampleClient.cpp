@@ -80,23 +80,29 @@ int main(int argc, char** argv)
 	OutputVec outputVec;
 //    VString s1("This");
 
-    VString s1("This string is full of characters");
-    VString s2("Multithreading is awesome");
-//    VString s3("Multithreading is awesome");
+//    VString s1("This string is full of characters");
+//    VString s2("Multithreading is awesome");
+////    VString s3("Multithreading is awesome");
 //    VString s4("Multithreading is awesome");
 //    VString s5("Multithreading is awesome");
 //    VString s6("Multithreading is awesome");
 //    VString s7("Multithreading is awesome");
 //    VString s8("Multithreading is awesome");
-	VString s3("conditions are race bad");
-	inputVec.push_back({nullptr, &s1});
-	inputVec.push_back({nullptr, &s2});
-    inputVec.push_back({nullptr, &s3});
+//	VString s3("conditions are race bad");
+//	inputVec.push_back({nullptr, &s1});
+//	inputVec.push_back({nullptr, &s2});
+//    inputVec.push_back({nullptr, &s3});
 //    inputVec.push_back({nullptr, &s4});
 //    inputVec.push_back({nullptr, &s5});
 //    inputVec.push_back({nullptr, &s6});
 //    inputVec.push_back({nullptr, &s7});
 //    inputVec.push_back({nullptr, &s8});
+    int num_of_in = 300;
+    VString* arr[num_of_in];
+    for (int i = 0; i < num_of_in; ++i){
+        arr[i] = new VString("abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz");
+        inputVec.push_back({nullptr, arr[i]});
+    }
 //    inputVec.push_back({nullptr, &s9});
 	runMapReduceFramework(client, inputVec, outputVec, 4);
 	
