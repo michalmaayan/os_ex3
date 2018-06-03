@@ -3,7 +3,7 @@
 Barrier::Barrier(int numThreads)
  : mutex(PTHREAD_MUTEX_INITIALIZER)
  , cv(PTHREAD_COND_INITIALIZER)
- , count(1)
+ , count(0)
  , numThreads(numThreads)
 { }
 
@@ -21,7 +21,7 @@ void Barrier::barrier()
 	if (++count < numThreads) {
 		pthread_cond_wait(&cv, &mutex);
 	} else {
-		count = 1;
+		count = 0;
 		pthread_cond_broadcast(&cv);
 	}
 	pthread_mutex_unlock(&mutex);

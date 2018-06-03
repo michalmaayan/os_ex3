@@ -11,7 +11,7 @@
 #include <algorithm>    // std::sort
 #include <semaphore.h>
 
-#define ST 1
+#define ST 0
 
 typedef struct ThreadContext{
     int threadId;
@@ -198,9 +198,10 @@ void runMapReduceFramework(const MapReduceClient& client,
         contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic, &inputVec, &outputVec, arrayOfInterVec, &client,
                        &Queue, &flag, &mutexQueue, &fillCount};
     }
-    for (int i = ST; i < multiThreadLevel; ++i) {
+    for (int i = ST+1; i < multiThreadLevel; ++i) {
         pthread_create(threads + i, NULL, threadLogic, contexts + i);
     }
+    threadLogic(contexts);
     for (int i = ST; i < multiThreadLevel; ++i) {
         pthread_join(threads[i], NULL);
     }
