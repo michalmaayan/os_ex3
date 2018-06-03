@@ -75,7 +75,8 @@ void printInterKey(K2* key){
 
 int main(int argc, char** argv)
 {
-	CounterClient client;
+    printf("STARTING TEST1:\n");
+    CounterClient client;
 	InputVec inputVec;
 	OutputVec outputVec;
 //    VString s1("This");
@@ -114,7 +115,30 @@ int main(int argc, char** argv)
 		delete pair.first;
 		delete pair.second;
 	}
-	
+    printf("END TEST1!!!\n");
+    // TEST 2
+    printf("STARTING TEST2:\n");
+    CounterClient client2;
+    InputVec inputVec2;
+    OutputVec outputVec2;
+    int num_of_in2 = 300;
+    VString* arr2[num_of_in];
+    for (int i = 0; i < num_of_in2; ++i){
+        arr2[i] = new VString("abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz");
+        inputVec2.push_back({nullptr, arr2[i]});
+    }
+//    inputVec.push_back({nullptr, &s9});
+    runMapReduceFramework(client2, inputVec2, outputVec2, 10);
+
+    for (OutputPair& pair: outputVec2) {
+        char c = ((const KChar*)pair.first)->c;
+        int count = ((const VCount*)pair.second)->count;
+        printf("The character %c appeared %d time%s\n",
+               c, count, count > 1 ? "s" : "");
+        delete pair.first;
+        delete pair.second;
+    }
+    printf("END TEST2!!!\n");
 	return 0;
 }
 
