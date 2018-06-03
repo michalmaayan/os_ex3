@@ -19,6 +19,7 @@ typedef struct ThreadContext{
     Barrier * barrier;
     std::atomic<int>* atomicIndex;
     std::atomic<int> *outAtomicIndex;
+    std::atomic<int> *reduceAtomic;
     const InputVec* inputVec;
     OutputVec* outputVec;
     IntermediateVec **arrayOfInterVec;
@@ -35,7 +36,7 @@ typedef struct MapContext{
 }MapContext;
 
 typedef struct ReduceContext{
-    OutputVec* outVector;
+    OutputVec *outVector;
     std::atomic<int> *outAtomicIndex;
 
 }ReduceContext;
@@ -45,7 +46,10 @@ void emit2 (K2* key, V2* value, void* context){
     tc->interVector->emplace_back(key, value);
 }
 void emit3 (K3* key, V3* value, void* context){
-
+    auto* tc = (ReduceContext*) context;
+    int oldValue = (*(tc->outAtomicIndex))++ ;
+    auto iterator = (*(tc->outVector)).begin();
+    (*(tc->outVector)).emplace(iterator+(oldValue), key, value);
 }
 
 bool comperator(IntermediatePair &p1, IntermediatePair &p2){
@@ -61,7 +65,6 @@ bool check_empty_find_max(IntermediateVec **arr, int MT, K2 **max){
                 *max = (*(arr[i])).back().first;
             }
             else{
-                std::cout<<"checkempty1\n";
                 if(*max < (*(arr[i])).back().first)
                 {
                     *max = (*(arr[i])).back().first;
@@ -73,17 +76,7 @@ bool check_empty_find_max(IntermediateVec **arr, int MT, K2 **max){
 }
 
 bool is_eq(K2 *max, IntermediatePair &p){
-    std::cout<<"checkeq2\n";
-    if (p.first == nullptr){
-        std::cout<<"checkeq3\n";
-    }
-
-
-    if (*p.first < *p.first){
-
-    }
     if(not(*max < *p.first)){
-        std::cout<<"checkeq4\n";
         if(not(*p.first < *max)){
             return true;
         }
@@ -141,25 +134,36 @@ void* threadLogic (void* context){
             sem_post(tc->mutexQueue);
             sem_post(tc->fillCount);
         }
+        *(tc->flag) = false;
         //wakeup all the threads who went down
         for (int i = ST; i < tc->MT; ++i) {
             sem_post(tc->fillCount);
         }
-        *(tc->flag) = false;
     }// end of shuffle
 
     //reduce
-    while(tc->flag){
-        sem_wait(tc->fillCount);
-        // check flag again - for end of shffle
-        if (tc->flag){
+    while(true){
+        int index = (*(tc->atomicIndex))++ ;
+        if (index < tc->Queue->size())
+        {
+            sem_wait(tc->fillCount);
+            // check flag again - for end of shuffle
             sem_wait(tc->mutexQueue);
-            auto pairs = tc->Queue->back();
-            ReduceContext reduceContext = {tc->outputVec, tc->outAtomicIndex};
-            tc->client->reduce(pairs, &reduceContext);
+            if (not((*(tc->Queue)).empty())){
+
+                //if the queue empty unlock and exit
+                auto pairs = tc->Queue->back();
+                //pop
+
+                ReduceContext reduceContext = {tc->outputVec, tc->outAtomicIndex};
+                tc->client->reduce(pairs, &reduceContext);
+                sem_post(tc->mutexQueue);
+                std::cout<<"threadID: "<<tc->threadId<<"\n";
+            }
+            break;
+
         }
 
-        
     }
 
 
@@ -176,6 +180,7 @@ void runMapReduceFramework(const MapReduceClient& client,
     Barrier barrier(multiThreadLevel);
     std::atomic<int> atomicIndex(0);
     std::atomic<int> outAtomicIndex(0);
+    std::atomic<int> reducetAtomic(0);
     std::atomic<bool> flag(true);
     IntermediateVec* arrayOfInterVec[multiThreadLevel];
     std::vector <IntermediateVec*> Queue;
@@ -188,7 +193,7 @@ void runMapReduceFramework(const MapReduceClient& client,
         arrayOfInterVec[i] = new IntermediateVec;
     }
     for (int i = ST; i < multiThreadLevel; ++i) {
-        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &inputVec, &outputVec, arrayOfInterVec, &client,
+        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic, &inputVec, &outputVec, arrayOfInterVec, &client,
                        &Queue, &flag, &mutexQueue, &fillCount};
     }
     for (int i = ST; i < multiThreadLevel; ++i) {

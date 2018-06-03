@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 //    VString s6("Multithreading is awesome");
 //    VString s7("Multithreading is awesome");
 //    VString s8("Multithreading is awesome");
-//	VString s9("conditions are race bad");
+//	VString s3("conditions are race bad");
 	inputVec.push_back({nullptr, &s1});
 //	inputVec.push_back({nullptr, &s2});
 //    inputVec.push_back({nullptr, &s3});
