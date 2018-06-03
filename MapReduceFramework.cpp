@@ -18,6 +18,7 @@ typedef struct ThreadContext{
     int MT;
     Barrier * barrier;
     std::atomic<int>* atomicIndex;
+    std::atomic<int> *outAtomicIndex;
     const InputVec* inputVec;
     OutputVec* outputVec;
     IntermediateVec **arrayOfInterVec;
@@ -34,7 +35,8 @@ typedef struct MapContext{
 }MapContext;
 
 typedef struct ReduceContext{
-    IntermediateVec *interVector;
+    OutputVec* outVector;
+    std::atomic<int> *outAtomicIndex;
 
 }ReduceContext;
 
@@ -149,8 +151,14 @@ void* threadLogic (void* context){
     //reduce
     while(tc->flag){
         sem_wait(tc->fillCount);
-        sem_wait(tc->mutexQueue);
-        auto pairs = tc->Queue->back();
+        // check flag again - for end of shffle
+        if (tc->flag){
+            sem_wait(tc->mutexQueue);
+            auto pairs = tc->Queue->back();
+            ReduceContext reduceContext = {tc->outputVec, tc->outAtomicIndex};
+            tc->client->reduce(pairs, &reduceContext);
+        }
+
         
     }
 
@@ -167,6 +175,7 @@ void runMapReduceFramework(const MapReduceClient& client,
     ThreadContext contexts[multiThreadLevel];
     Barrier barrier(multiThreadLevel);
     std::atomic<int> atomicIndex(0);
+    std::atomic<int> outAtomicIndex(0);
     std::atomic<bool> flag(true);
     IntermediateVec* arrayOfInterVec[multiThreadLevel];
     std::vector <IntermediateVec*> Queue;
@@ -179,7 +188,7 @@ void runMapReduceFramework(const MapReduceClient& client,
         arrayOfInterVec[i] = new IntermediateVec;
     }
     for (int i = ST; i < multiThreadLevel; ++i) {
-        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &inputVec, &outputVec, arrayOfInterVec, &client,
+        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &inputVec, &outputVec, arrayOfInterVec, &client,
                        &Queue, &flag, &mutexQueue, &fillCount};
     }
     for (int i = ST; i < multiThreadLevel; ++i) {
