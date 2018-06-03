@@ -33,6 +33,11 @@ typedef struct MapContext{
     
 }MapContext;
 
+typedef struct ReduceContext{
+    IntermediateVec *interVector;
+
+}ReduceContext;
+
 void emit2 (K2* key, V2* value, void* context){
     auto* tc = (MapContext*) context;
     tc->interVector->emplace_back(key, value);
@@ -112,11 +117,13 @@ void* threadLogic (void* context){
             for (int i = ST; i < tc->MT; ++i) {
                 // in case the vector isn't empty
                 if (not(*(tc->arrayOfInterVec[i])).empty()) {
-                    std::cout<<(*(tc->arrayOfInterVec[i])).empty()<<"\n";
-                    std::cout<<"threadID: "<<tc->threadId<<"\n";
+                //todo delete
+//                    std::cout<<(*(tc->arrayOfInterVec[i])).empty()<<"\n";
+//                    std::cout<<"threadID: "<<tc->threadId<<"\n";
                     while(is_eq(max, (*(tc->arrayOfInterVec[i])).back())) {
                         (*sameKey).emplace_back((*(tc->arrayOfInterVec[i])).back());
                         (*(tc->arrayOfInterVec[i])).pop_back();
+                        //check emptyness again
                         if ((*(tc->arrayOfInterVec[i])).empty()){
                             break;
                         }
@@ -132,14 +139,21 @@ void* threadLogic (void* context){
             sem_post(tc->mutexQueue);
             sem_post(tc->fillCount);
         }
+        //wakeup all the threads who went down
         for (int i = ST; i < tc->MT; ++i) {
             sem_post(tc->fillCount);
         }
         *(tc->flag) = false;
-
-    }
+    }// end of shuffle
 
     //reduce
+    while(tc->flag){
+        sem_wait(tc->fillCount);
+        sem_wait(tc->mutexQueue);
+        auto pairs = tc->Queue->back();
+        
+    }
+
 
 
     return 0;
