@@ -62,6 +62,16 @@ public:
 	}
 };
 
+void printIntermediatePair(IntermediatePair * pair){
+    char c = ((const KChar*)(*pair).first)->c;
+    int count = ((const VCount*)(*pair).second)->count;
+    printf("key: %c, value: %d\n",c, count);
+
+}
+void printInterKey(K2* key){
+    char k = ((const KChar*)key)->c;
+    printf("%c",k);
+}
 
 int main(int argc, char** argv)
 {

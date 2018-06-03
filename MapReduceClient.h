@@ -4,6 +4,8 @@
 #include <vector>  //std::vector
 #include <utility> //std::pair
 
+
+
 // input key and value.
 // the key, value for the map function and the MapReduceFramework
 class K1 {
@@ -51,6 +53,11 @@ typedef std::vector<InputPair> InputVec;
 typedef std::vector<IntermediatePair> IntermediateVec;
 typedef std::vector<OutputPair> OutputVec;
 
+void printInputPair(IntermediatePair * pair);
+void printIntermediatePair(IntermediatePair * pair);
+void printOutputPair(IntermediatePair * pair);
+void printInterKey(K2* key);
+
 
 class MapReduceClient {
 public:
@@ -64,6 +71,8 @@ public:
 	// to output (K3, V3) pairs.
 	virtual void reduce(const IntermediateVec* pairs, void* context)
 		const = 0;
+
+
 };
 
 

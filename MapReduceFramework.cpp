@@ -41,6 +41,17 @@ typedef struct ReduceContext{
 
 }ReduceContext;
 
+void printInterVector(IntermediateVec** array, int numOfThreads){
+    printf("++++++++++++\n");
+    for (int i = 1; i < numOfThreads; ++i){
+        printf("thread id: %d:\n",i);
+        for (unsigned long j = 0; j < (*(array[i])).size() ; ++j){
+            printIntermediatePair((&(*(array[i])).at(j)));
+        }
+        printf("~~~~~~~~\n");
+    }
+}
+
 void emit2 (K2* key, V2* value, void* context){
     auto* tc = (MapContext*) context;
     tc->interVector->emplace_back(key, value);
@@ -65,7 +76,7 @@ bool check_empty_find_max(IntermediateVec **arr, int MT, K2 **max){
                 *max = (*(arr[i])).back().first;
             }
             else{
-                if(*max < (*(arr[i])).back().first)
+                if((**max) < *(*(arr[i])).back().first)
                 {
                     *max = (*(arr[i])).back().first;
                 }
@@ -76,6 +87,7 @@ bool check_empty_find_max(IntermediateVec **arr, int MT, K2 **max){
 }
 
 bool is_eq(K2 *max, IntermediatePair &p){
+
     if(not(*max < *p.first)){
         if(not(*p.first < *max)){
             return true;
@@ -84,12 +96,12 @@ bool is_eq(K2 *max, IntermediatePair &p){
     return false;
 }
 
-void* threadLogic (void* context){
-    auto* tc = (ThreadContext*) context;
-    int oldValue = (*(tc->atomicIndex))++ ;
+void* threadLogic (void* context) {
+    auto *tc = (ThreadContext *) context;
+    int oldValue = (*(tc->atomicIndex))++;
 
     //map logic
-    while(oldValue < tc->inputVec->size()) {
+    while (oldValue < tc->inputVec->size()) {
         auto k1 = tc->inputVec->at(oldValue).first;
         auto v1 = tc->inputVec->at(oldValue).second;
         MapContext mapContext = {(tc->arrayOfInterVec)[tc->threadId]};
@@ -99,8 +111,34 @@ void* threadLogic (void* context){
 
     //sort
     auto tempVec = (tc->arrayOfInterVec)[tc->threadId];
-    std::sort (tempVec->begin(), tempVec->end(), comperator);
+    std::sort(tempVec->begin(), tempVec->end(), comperator);
+//    //DEBUG
+//    if (tc->threadId == 1) {
+//            if (((*(tc->arrayOfInterVec[tc->threadId])).size() > 1)){
+//                printf("started if\n");
+//            for (unsigned long i = 0; i < ((*(tc->arrayOfInterVec[tc->threadId])).size() - 1); ++i) {
+//                bool check = comperator((*(tc->arrayOfInterVec[tc->threadId])).at(i),
+//                                        (*(tc->arrayOfInterVec[tc->threadId])).at(i + 1));
+//                if (not check) {
+//                    bool check2 = is_eq((*(tc->arrayOfInterVec[tc->threadId])).at(i).first,
+//                                            (*(tc->arrayOfInterVec[tc->threadId])).at(i + 1));
+//                    if (not check2){
+//                        printf("FALSE MADERFACKER\n");
+//                    }
+//                }
+//            }
+//        }
+//            else {
+//                printf("empty itermidiate\n");
+//            }
+//    }
+    if (tc->threadId == 2) {
+        for (IntermediatePair &pair: *(tc->arrayOfInterVec)[tc->threadId]) {
+            printIntermediatePair(&pair);
+        }
+    }
     tc->barrier->barrier();
+
 
     //shuffle
     if(tc->threadId == ST) {
@@ -113,6 +151,7 @@ void* threadLogic (void* context){
                 // in case the vector isn't empty
                 if (not(*(tc->arrayOfInterVec[i])).empty()) {
                     while(is_eq(max, (*(tc->arrayOfInterVec[i])).back())) {
+                        printInterVector(tc->arrayOfInterVec, tc->MT);
                         (*sameKey).emplace_back((*(tc->arrayOfInterVec[i])).back());
                         (*(tc->arrayOfInterVec[i])).pop_back();
                         //check emptyness again
