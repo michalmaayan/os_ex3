@@ -124,7 +124,6 @@ void* threadLogic (void* context){
             }
             max = nullptr;
             isEmpty = check_empty_find_max(tc->arrayOfInterVec, tc->MT, &max);
-
             //add to queue using semaphore
             sem_wait(tc->mutexQueue);
             tc->Queue->push_back(sameKey);
