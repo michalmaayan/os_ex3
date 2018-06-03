@@ -40,13 +40,32 @@ typedef struct ReduceContext{
     std::atomic<int> *outAtomicIndex;
 
 }ReduceContext;
+void safeExit(ThreadContext* tc)
+{
+    if(tc == nullptr){
+        exit(-1);
+    }
+    for(int i=0; i<tc->Queue->size(); ++i){
+        delete tc->Queue->at(i);
+    }
+    tc->Queue->clear();
+    for (int i = ST; i < tc->MT; ++i) {
+        delete tc->arrayOfInterVec[i];
+    }
+    // release intermidiate vector of vectors
+    // release queue
+}
+void printErr(std::string msg, ThreadContext *tc){
+    std::cerr<<msg<<std::endl;
+    safeExit(tc);
+}
 
 void printInterVector(IntermediateVec** array, int numOfThreads){
     printf("++++++++++++\n");
     for (int i = 1; i < numOfThreads; ++i){
         printf("thread id: %d:\n",i);
         for (unsigned long j = 0; j < (*(array[i])).size() ; ++j){
-            printIntermediatePair((&(*(array[i])).at(j)));
+            //printIntermediatePair((&(*(array[i])).at(j)));
         }
         printf("~~~~~~~~\n");
     }
@@ -144,32 +163,47 @@ void* threadLogic (void* context) {
             max = nullptr;
             isEmpty = check_empty_find_max(tc->arrayOfInterVec, tc->MT, &max);
             //add to queue using semaphore
-            sem_wait(tc->mutexQueue);
+            if (sem_wait(tc->mutexQueue) != 0){
+                printErr("sem_wait err",tc);
+            }
             tc->Queue->push_back(sameKey);
-            sem_post(tc->mutexQueue);
-            sem_post(tc->fillCount);
+            if (sem_post(tc->mutexQueue) != 0){
+                printErr("sem_post err",tc);
+            }
+            if (sem_post(tc->fillCount) != 0){
+                printErr("sem_post err",tc);
+            }
         }
         *(tc->flag) = false;
         //wakeup all the threads who went down
         for (int i = ST; i < tc->MT; ++i) {
-            sem_post(tc->fillCount);
+            if (sem_post(tc->fillCount) != 0){
+                printErr("sem_post err",tc);
+            }
         }
     }// end of shuffle
 
     //reduce
     while(true){
-        sem_wait(tc->fillCount);
+        if (sem_wait(tc->fillCount) != 0){
+            printErr("sem_wait err",tc);
+        }
         auto index = (*(tc->reduceAtomic))++ ;
         if (index < tc->Queue->size()) {
-            sem_wait(tc->mutexQueue);
+            if (sem_wait(tc->mutexQueue) != 0){
+                printErr("sem_wait err",tc);
+            }
             auto pairs = (*(tc->Queue)).at(index);
             ReduceContext reduceContext = {tc->outputVec, tc->outAtomicIndex};
             tc->client->reduce(pairs, &reduceContext);
-            sem_post(tc->mutexQueue);
+            if (sem_post(tc->mutexQueue) != 0){
+                printErr("sem_post err",tc);
+            }
         } else{
             break;
         }
     }
+    //printErr("michal", tc);
     return 0;
 }
 
@@ -177,6 +211,9 @@ void* threadLogic (void* context) {
 void runMapReduceFramework(const MapReduceClient& client,
                            const InputVec& inputVec, OutputVec& outputVec,
                            int multiThreadLevel){
+    if(multiThreadLevel < 1){
+        printErr("multiThreadLevel isn't legal", nullptr);
+    }
     pthread_t threads[multiThreadLevel];
     ThreadContext contexts[multiThreadLevel];
     Barrier barrier(multiThreadLevel);
@@ -188,9 +225,12 @@ void runMapReduceFramework(const MapReduceClient& client,
     std::vector <IntermediateVec*> Queue;
     sem_t mutexQueue;
     sem_t  fillCount;
-    sem_init(&mutexQueue, 0, 1);
-    sem_init(&fillCount, 0, 0);
-
+    if (sem_init(&mutexQueue, 0, 1) != 0){
+        printErr("sem_init failed\n", nullptr);
+    }
+    if (sem_init(&fillCount, 0, 0) != 0){
+        printErr("sem_init failed\n", nullptr);
+    }
     for (int i = ST; i < multiThreadLevel; ++i) {
         arrayOfInterVec[i] = new IntermediateVec;
     }
@@ -199,11 +239,15 @@ void runMapReduceFramework(const MapReduceClient& client,
                        &Queue, &flag, &mutexQueue, &fillCount};
     }
     for (int i = ST+1; i < multiThreadLevel; ++i) {
-        pthread_create(threads + i, NULL, threadLogic, contexts + i);
+        if (pthread_create(threads + i, NULL, threadLogic, contexts + i) != 0){
+            printErr("pthread_create failed\n",contexts + i);
+        }
     }
     threadLogic(contexts);
-    for (int i = ST; i < multiThreadLevel; ++i) {
-        pthread_join(threads[i], NULL);
+    for (int i = ST+1; i < multiThreadLevel; ++i) {
+        if (pthread_join(threads[i], NULL) != 0){
+            printErr("pthread_join failed\n",contexts + i);
+        }
     }
 
 }
