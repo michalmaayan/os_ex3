@@ -1,11 +1,6 @@
-//
-// Created by michal.maayan on 5/30/18.
-//
-
 #include <cstdlib>
 #include <cstdio>
 #include "Barrier.h"
-#include "Barrier.cpp"
 #include "MapReduceClient.h"
 #include <atomic>
 #include <iostream>
@@ -26,51 +21,43 @@ typedef struct ThreadContext{
     std::vector<IntermediateVec> *arrayOfInterVec;
     const MapReduceClient* client;
     std::vector <IntermediateVec> *Queue;
-    std::atomic<bool>* flag;
     sem_t *mutexQueue;
     sem_t *fillCount;
 }ThreadContext;
 
 typedef struct MapContext{
     IntermediateVec *interVector;
-    
 }MapContext;
 
 typedef struct ReduceContext{
     OutputVec *outVector;
     std::atomic<int> *outAtomicIndex;
-
 }ReduceContext;
+
 void safeExit(ThreadContext* tc)
 {
     if(tc == nullptr){
         exit(-1);
     }
-    for(int i=0; i<tc->Queue->size(); ++i){
-        //delete tc->Queue->at(i);
-    }
     tc->Queue->clear();
-    for (int i = FIRSTTHREAD; i < tc->MT; ++i) {
-        //delete tc->arrayOfInterVec->at(i);
-    }
-    // release intermidiate vector of vectors
-    // release queue
 }
+
 void printErr(std::string msg, ThreadContext *tc){
     std::cerr<<msg<<std::endl;
     safeExit(tc);
 }
 
-void printInterVector(IntermediateVec** array, int numOfThreads){
-    printf("++++++++++++\n");
-    for (int i = 1; i < numOfThreads; ++i){
-        printf("thread id: %d:\n",i);
-        for (unsigned long j = 0; j < (*(array[i])).size() ; ++j){
-            //printIntermediatePair((&(*(array[i])).at(j)));
-        }
-        printf("~~~~~~~~\n");
-    }
-}
+//for debug
+//void printInterVector(IntermediateVec** array, int numOfThreads){
+//    printf("++++++++++++\n");
+//    for (int i = 1; i < numOfThreads; ++i){
+//        printf("thread id: %d:\n",i);
+//        for (unsigned long j = 0; j < (*(array[i])).size() ; ++j){
+//            //printIntermediatePair((&(*(array[i])).at(j)));
+//        }
+//        printf("~~~~~~~~\n");
+//    }
+//}
 
 void emit2 (K2* key, V2* value, void* context){
     auto* tc = (MapContext*) context;
@@ -87,6 +74,7 @@ bool comperator(IntermediatePair &p1, IntermediatePair &p2){
     return (*p1.first < *p2.first);
 }
 
+// check the IntermediateVec isn't empty, in case it doesn't find the next max key
 bool check_empty_find_max(std::vector<IntermediateVec> *arr, int MT, K2 **max){
     bool isEmpty = true;
     for (int i = FIRSTTHREAD; i < MT; ++i) {
@@ -107,7 +95,6 @@ bool check_empty_find_max(std::vector<IntermediateVec> *arr, int MT, K2 **max){
 }
 
 bool is_eq(K2 *max, IntermediatePair &p){
-
     if(not(*max < *p.first)){
         if(not(*p.first < *max)){
             return true;
@@ -132,13 +119,7 @@ void* threadLogic (void* context) {
     //sort
     auto tempVec = &(tc->arrayOfInterVec->at(tc->threadId));//[tc->threadId];
     std::sort(tempVec->begin(), tempVec->end(), comperator);
-//    if (tc->threadId == 2) {
-//        for (IntermediatePair &pair: *(tc->arrayOfInterVec)[tc->threadId]) {
-//            printIntermediatePair(&pair);
-//        }
-//    }
     tc->barrier->barrier();
-
 
     //shuffle
     if(tc->threadId == FIRSTTHREAD) {
@@ -151,7 +132,6 @@ void* threadLogic (void* context) {
                 // in case the vector isn't empty
                 if (not(tc->arrayOfInterVec->at(i).empty())) {
                     while(is_eq(max, (tc->arrayOfInterVec->at(i).back()))) {
-//                        printInterVector(tc->arrayOfInterVec, tc->MT);
                         (sameKey).emplace_back(((tc->arrayOfInterVec->at(i))).back());
                         ((tc->arrayOfInterVec->at(i))).pop_back();
                         //check emptyness again
@@ -175,7 +155,6 @@ void* threadLogic (void* context) {
                 printErr("sem_post err",tc);
             }
         }
-        *(tc->flag) = false;
         //wakeup all the threads who went down
         for (int i = FIRSTTHREAD; i < tc->MT; ++i) {
             if (sem_post(tc->fillCount) != 0){
@@ -204,7 +183,7 @@ void* threadLogic (void* context) {
             break;
         }
     }
-    return 0;
+    return nullptr;
 }
 
 
@@ -220,9 +199,7 @@ void runMapReduceFramework(const MapReduceClient& client,
     std::atomic<int> atomicIndex(0);
     std::atomic<int> outAtomicIndex(0);
     std::atomic<int> reducetAtomic(0);
-    std::atomic<bool> flag(true);
     std::vector<IntermediateVec> arrayOfInterVec = {};
-    //IntermediateVec* arrayOfInterVec[multiThreadLevel];
     std::vector <IntermediateVec> Queue;
     sem_t mutexQueue;
     sem_t  fillCount;
@@ -238,7 +215,7 @@ void runMapReduceFramework(const MapReduceClient& client,
     for (int i = FIRSTTHREAD; i < multiThreadLevel; ++i) {
         contexts[i] = {i, (unsigned int)multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic,
                        &inputVec, &outputVec, &arrayOfInterVec, &client,
-                       &Queue, &flag, &mutexQueue, &fillCount};
+                       &Queue, &mutexQueue, &fillCount};
     }
     for (int i = FIRSTTHREAD+1; i < multiThreadLevel; ++i) {
         if (pthread_create(threads + i, NULL, threadLogic, contexts + i) != 0){
