@@ -1,0 +1,13 @@
+kawabanga, michal.maayan
+Yaron Scherf (305758211), Michal Maayan (203348776)
+EX: 3
+
+FILES:
+MapReduceFramework.c -- Our main code file, an implementation of the 
+                        required code.
+Barrier.h -- school implementation
+Barrier.cpp -- school implementation
+
+REMARKS:
+Hope you have enjoyed from our implementation, we have done our best :)
+
