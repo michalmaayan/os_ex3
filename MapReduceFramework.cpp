@@ -24,7 +24,7 @@ typedef struct ThreadContext{
     OutputVec* outputVec;
     std::vector<IntermediateVec> *arrayOfInterVec;
     const MapReduceClient* client;
-    std::vector <IntermediateVec*> *Queue;
+    std::vector <IntermediateVec> *Queue;
     std::atomic<bool>* flag;
     sem_t *mutexQueue;
     sem_t *fillCount;
@@ -46,7 +46,7 @@ void safeExit(ThreadContext* tc)
         exit(-1);
     }
     for(int i=0; i<tc->Queue->size(); ++i){
-        delete tc->Queue->at(i);
+        //delete tc->Queue->at(i);
     }
     tc->Queue->clear();
     for (int i = ST; i < tc->MT; ++i) {
@@ -145,13 +145,13 @@ void* threadLogic (void* context) {
         K2* max = nullptr;
         bool isEmpty = check_empty_find_max(tc->arrayOfInterVec, tc->MT, &max);
         while(not isEmpty){
-            IntermediateVec *sameKey = new IntermediateVec;
+            IntermediateVec sameKey = {};
             for (int i = ST; i < tc->MT; ++i) {
                 // in case the vector isn't empty
                 if (not(tc->arrayOfInterVec->at(i).empty())) {
                     while(is_eq(max, (tc->arrayOfInterVec->at(i).back()))) {
 //                        printInterVector(tc->arrayOfInterVec, tc->MT);
-                        (*sameKey).emplace_back(((tc->arrayOfInterVec->at(i))).back());
+                        (sameKey).emplace_back(((tc->arrayOfInterVec->at(i))).back());
                         ((tc->arrayOfInterVec->at(i))).pop_back();
                         //check emptyness again
                         if (((tc->arrayOfInterVec->at(i))).empty()){
@@ -193,7 +193,7 @@ void* threadLogic (void* context) {
             if (sem_wait(tc->mutexQueue) != 0){
                 printErr("sem_wait err",tc);
             }
-            auto pairs = (*(tc->Queue)).at(index);
+            auto pairs = &(tc->Queue->at(index));
             ReduceContext reduceContext = {tc->outputVec, tc->outAtomicIndex};
             tc->client->reduce(pairs, &reduceContext);
             if (sem_post(tc->mutexQueue) != 0){
@@ -223,7 +223,7 @@ void runMapReduceFramework(const MapReduceClient& client,
     std::atomic<bool> flag(true);
     std::vector<IntermediateVec> arrayOfInterVec = {};
     //IntermediateVec* arrayOfInterVec[multiThreadLevel];
-    std::vector <IntermediateVec*> Queue;
+    std::vector <IntermediateVec> Queue;
     sem_t mutexQueue;
     sem_t  fillCount;
     if (sem_init(&mutexQueue, 0, 1) != 0){
