@@ -139,6 +139,31 @@ int main(int argc, char** argv)
         delete pair.second;
     }
     printf("END TEST2!!!\n");
+
+	// TEST 2
+	printf("STARTING TEST3:\n");
+	CounterClient client3;
+	InputVec inputVec3;
+	OutputVec outputVec3;
+	int num_of_in3 = 300;
+	VString* arr3[num_of_in];
+	for (int i = 0; i < num_of_in3; ++i){
+		arr3[i] = new VString("abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz");
+		inputVec3.push_back({nullptr, arr3[i]});
+	}
+//    inputVec.push_back({nullptr, &s9});
+	runMapReduceFramework(client3, inputVec3, outputVec3, 900);
+
+	for (OutputPair& pair: outputVec3) {
+		char c = ((const KChar*)pair.first)->c;
+		int count = ((const VCount*)pair.second)->count;
+		printf("The character %c appeared %d time%s\n",
+			   c, count, count > 1 ? "s" : "");
+		delete pair.first;
+		delete pair.second;
+	}
+	printf("END TEST3!!!\n");
+
 	return 0;
 }
 

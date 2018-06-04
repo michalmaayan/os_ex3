@@ -22,7 +22,7 @@ typedef struct ThreadContext{
     std::atomic<int> *reduceAtomic;
     const InputVec* inputVec;
     OutputVec* outputVec;
-    IntermediateVec **arrayOfInterVec;
+    std::vector<IntermediateVec> *arrayOfInterVec;
     const MapReduceClient* client;
     std::vector <IntermediateVec*> *Queue;
     std::atomic<bool>* flag;
@@ -50,7 +50,7 @@ void safeExit(ThreadContext* tc)
     }
     tc->Queue->clear();
     for (int i = ST; i < tc->MT; ++i) {
-        delete tc->arrayOfInterVec[i];
+        //delete tc->arrayOfInterVec->at(i);
     }
     // release intermidiate vector of vectors
     // release queue
@@ -86,18 +86,18 @@ bool comperator(IntermediatePair &p1, IntermediatePair &p2){
     return (*p1.first < *p2.first);
 }
 
-bool check_empty_find_max(IntermediateVec **arr, int MT, K2 **max){
+bool check_empty_find_max(std::vector<IntermediateVec> *arr, int MT, K2 **max){
     bool isEmpty = true;
     for (int i = ST; i < MT; ++i) {
-        if (not(*(arr[i])).empty()) {
+        if (not((arr)->at(i)).empty()) {
             isEmpty = false;
             if(*max == nullptr){
-                *max = (*(arr[i])).back().first;
+                *max = ((arr)->at(i)).back().first;
             }
             else{
-                if((**max) < *(*(arr[i])).back().first)
+                if((**max) < *((arr)->at(i)).back().first)
                 {
-                    *max = (*(arr[i])).back().first;
+                    *max = ((arr)->at(i)).back().first;
                 }
             }
         }
@@ -123,13 +123,13 @@ void* threadLogic (void* context) {
     while (oldValue < tc->inputVec->size()) {
         auto k1 = tc->inputVec->at(oldValue).first;
         auto v1 = tc->inputVec->at(oldValue).second;
-        MapContext mapContext = {(tc->arrayOfInterVec)[tc->threadId]};
+        MapContext mapContext = {(&tc->arrayOfInterVec->at(tc->threadId))};
         tc->client->map(k1, v1, &mapContext);
         oldValue = (*(tc->atomicIndex))++;
     }
 
     //sort
-    auto tempVec = (tc->arrayOfInterVec)[tc->threadId];
+    auto tempVec = &(tc->arrayOfInterVec->at(tc->threadId));//[tc->threadId];
     std::sort(tempVec->begin(), tempVec->end(), comperator);
 //    if (tc->threadId == 2) {
 //        for (IntermediatePair &pair: *(tc->arrayOfInterVec)[tc->threadId]) {
@@ -148,13 +148,13 @@ void* threadLogic (void* context) {
             IntermediateVec *sameKey = new IntermediateVec;
             for (int i = ST; i < tc->MT; ++i) {
                 // in case the vector isn't empty
-                if (not(*(tc->arrayOfInterVec[i])).empty()) {
-                    while(is_eq(max, (*(tc->arrayOfInterVec[i])).back())) {
+                if (not(tc->arrayOfInterVec->at(i).empty())) {
+                    while(is_eq(max, (tc->arrayOfInterVec->at(i).back()))) {
 //                        printInterVector(tc->arrayOfInterVec, tc->MT);
-                        (*sameKey).emplace_back((*(tc->arrayOfInterVec[i])).back());
-                        (*(tc->arrayOfInterVec[i])).pop_back();
+                        (*sameKey).emplace_back(((tc->arrayOfInterVec->at(i))).back());
+                        ((tc->arrayOfInterVec->at(i))).pop_back();
                         //check emptyness again
-                        if ((*(tc->arrayOfInterVec[i])).empty()){
+                        if (((tc->arrayOfInterVec->at(i))).empty()){
                             break;
                         }
                     }
@@ -221,7 +221,8 @@ void runMapReduceFramework(const MapReduceClient& client,
     std::atomic<int> outAtomicIndex(0);
     std::atomic<int> reducetAtomic(0);
     std::atomic<bool> flag(true);
-    IntermediateVec* arrayOfInterVec[multiThreadLevel];
+    std::vector<IntermediateVec> arrayOfInterVec = {};
+    //IntermediateVec* arrayOfInterVec[multiThreadLevel];
     std::vector <IntermediateVec*> Queue;
     sem_t mutexQueue;
     sem_t  fillCount;
@@ -232,10 +233,10 @@ void runMapReduceFramework(const MapReduceClient& client,
         printErr("sem_init failed\n", nullptr);
     }
     for (int i = ST; i < multiThreadLevel; ++i) {
-        arrayOfInterVec[i] = new IntermediateVec;
+        arrayOfInterVec.push_back({});
     }
     for (int i = ST; i < multiThreadLevel; ++i) {
-        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic, &inputVec, &outputVec, arrayOfInterVec, &client,
+        contexts[i] = {i, multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic, &inputVec, &outputVec, &arrayOfInterVec, &client,
                        &Queue, &flag, &mutexQueue, &fillCount};
     }
     for (int i = ST+1; i < multiThreadLevel; ++i) {
