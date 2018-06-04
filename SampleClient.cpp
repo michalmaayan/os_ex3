@@ -73,31 +73,14 @@ void printInterKey(K2* key){
     printf("%c",k);
 }
 
+
 int main(int argc, char** argv)
 {
+
     printf("STARTING TEST1:\n");
     CounterClient client;
 	InputVec inputVec;
 	OutputVec outputVec;
-//    VString s1("This");
-
-//    VString s1("This string is full of characters");
-//    VString s2("Multithreading is awesome");
-////    VString s3("Multithreading is awesome");
-//    VString s4("Multithreading is awesome");
-//    VString s5("Multithreading is awesome");
-//    VString s6("Multithreading is awesome");
-//    VString s7("Multithreading is awesome");
-//    VString s8("Multithreading is awesome");
-//	VString s3("conditions are race bad");
-//	inputVec.push_back({nullptr, &s1});
-//	inputVec.push_back({nullptr, &s2});
-//    inputVec.push_back({nullptr, &s3});
-//    inputVec.push_back({nullptr, &s4});
-//    inputVec.push_back({nullptr, &s5});
-//    inputVec.push_back({nullptr, &s6});
-//    inputVec.push_back({nullptr, &s7});
-//    inputVec.push_back({nullptr, &s8});
     int num_of_in = 300;
     VString* arr[num_of_in];
     for (int i = 0; i < num_of_in; ++i){
@@ -106,11 +89,11 @@ int main(int argc, char** argv)
     }
 //    inputVec.push_back({nullptr, &s9});
 	runMapReduceFramework(client, inputVec, outputVec, 4);
-	
+
 	for (OutputPair& pair: outputVec) {
 		char c = ((const KChar*)pair.first)->c;
 		int count = ((const VCount*)pair.second)->count;
-		printf("The character %c appeared %d time%s\n", 
+		printf("The character %c appeared %d time%s\n",
 			c, count, count > 1 ? "s" : "");
 		delete pair.first;
 		delete pair.second;
@@ -145,7 +128,7 @@ int main(int argc, char** argv)
 	CounterClient client3;
 	InputVec inputVec3;
 	OutputVec outputVec3;
-	int num_of_in3 = 300;
+	int num_of_in3 = 900;
 	VString* arr3[num_of_in];
 	for (int i = 0; i < num_of_in3; ++i){
 		arr3[i] = new VString("abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz");
