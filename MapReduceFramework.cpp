@@ -2,77 +2,17 @@
 // Created by michal.maayan on 5/30/18.
 //
 
-//#include "Barrier.h"
 #include <cstdlib>
 #include <cstdio>
-
+#include "Barrier.h"
+#include "Barrier.cpp"
 #include "MapReduceClient.h"
 #include <atomic>
-#include <vector>
-#include <pthread.h>
 #include <iostream>
 #include <algorithm>    // std::sort
 #include <semaphore.h>
 
-#define ST 0
-
-class Barrier {
-public:
-    Barrier(int numThreads);
-    ~Barrier();
-    void barrier();
-
-private:
-    pthread_mutex_t mutex;
-    pthread_cond_t cv;
-    int count;
-    int numThreads;
-};
-
-Barrier::Barrier(int numThreads)
-        : mutex(PTHREAD_MUTEX_INITIALIZER)
-        , cv(PTHREAD_COND_INITIALIZER)
-        , count(0)
-        , numThreads(numThreads)
-{ }
-
-
-Barrier::~Barrier()
-{
-    if (pthread_mutex_destroy(&mutex) != 0) {
-        fprintf(stderr, "[[Barrier]] error on pthread_mutex_destroy");
-        exit(1);
-    }
-    if (pthread_cond_destroy(&cv) != 0){
-        fprintf(stderr, "[[Barrier]] error on pthread_cond_destroy");
-        exit(1);
-    }
-}
-
-
-void Barrier::barrier()
-{
-    if (pthread_mutex_lock(&mutex) != 0){
-        fprintf(stderr, "[[Barrier]] error on pthread_mutex_lock");
-        exit(1);
-    }
-    if (++count < numThreads) {
-        if (pthread_cond_wait(&cv, &mutex) != 0){
-            fprintf(stderr, "[[Barrier]] error on pthread_cond_wait");
-            exit(1);
-        }
-    } else {
-        count = 0;
-        if (pthread_cond_broadcast(&cv) != 0) {
-            fprintf(stderr, "[[Barrier]] error on pthread_cond_broadcast");
-            exit(1);
-        }
-    }
-    if (pthread_mutex_unlock(&mutex) != 0) {
-        fprintf(stderr, "[[Barrier]] error on pthread_mutex_unlock");
-        exit(1);
-    }
-}
+#define FIRSTTHREAD 0
 
 typedef struct ThreadContext{
     unsigned int threadId;
@@ -110,7 +50,7 @@ void safeExit(ThreadContext* tc)
         //delete tc->Queue->at(i);
     }
     tc->Queue->clear();
-    for (int i = ST; i < tc->MT; ++i) {
+    for (int i = FIRSTTHREAD; i < tc->MT; ++i) {
         //delete tc->arrayOfInterVec->at(i);
     }
     // release intermidiate vector of vectors
@@ -149,7 +89,7 @@ bool comperator(IntermediatePair &p1, IntermediatePair &p2){
 
 bool check_empty_find_max(std::vector<IntermediateVec> *arr, int MT, K2 **max){
     bool isEmpty = true;
-    for (int i = ST; i < MT; ++i) {
+    for (int i = FIRSTTHREAD; i < MT; ++i) {
         if (not((arr)->at(i)).empty()) {
             isEmpty = false;
             if(*max == nullptr){
@@ -201,13 +141,13 @@ void* threadLogic (void* context) {
 
 
     //shuffle
-    if(tc->threadId == ST) {
+    if(tc->threadId == FIRSTTHREAD) {
         // initial K2
         K2* max = nullptr;
         bool isEmpty = check_empty_find_max(tc->arrayOfInterVec, tc->MT, &max);
         while(not isEmpty){
             IntermediateVec sameKey = {};
-            for (int i = ST; i < tc->MT; ++i) {
+            for (int i = FIRSTTHREAD; i < tc->MT; ++i) {
                 // in case the vector isn't empty
                 if (not(tc->arrayOfInterVec->at(i).empty())) {
                     while(is_eq(max, (tc->arrayOfInterVec->at(i).back()))) {
@@ -237,7 +177,7 @@ void* threadLogic (void* context) {
         }
         *(tc->flag) = false;
         //wakeup all the threads who went down
-        for (int i = ST; i < tc->MT; ++i) {
+        for (int i = FIRSTTHREAD; i < tc->MT; ++i) {
             if (sem_post(tc->fillCount) != 0){
                 printErr("sem_post err",tc);
             }
@@ -264,7 +204,6 @@ void* threadLogic (void* context) {
             break;
         }
     }
-    //printErr("michal", tc);
     return 0;
 }
 
@@ -293,20 +232,21 @@ void runMapReduceFramework(const MapReduceClient& client,
     if (sem_init(&fillCount, 0, 0) != 0){
         printErr("sem_init failed\n", nullptr);
     }
-    for (int i = ST; i < multiThreadLevel; ++i) {
+    for (int i = FIRSTTHREAD; i < multiThreadLevel; ++i) {
         arrayOfInterVec.push_back({});
     }
-    for (int i = ST; i < multiThreadLevel; ++i) {
-        contexts[i] = {i, (unsigned int)multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic, &inputVec, &outputVec, &arrayOfInterVec, &client,
+    for (int i = FIRSTTHREAD; i < multiThreadLevel; ++i) {
+        contexts[i] = {i, (unsigned int)multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic,
+                       &inputVec, &outputVec, &arrayOfInterVec, &client,
                        &Queue, &flag, &mutexQueue, &fillCount};
     }
-    for (int i = ST+1; i < multiThreadLevel; ++i) {
+    for (int i = FIRSTTHREAD+1; i < multiThreadLevel; ++i) {
         if (pthread_create(threads + i, NULL, threadLogic, contexts + i) != 0){
             printErr("pthread_create failed\n",contexts + i);
         }
     }
     threadLogic(contexts);
-    for (int i = ST+1; i < multiThreadLevel; ++i) {
+    for (int i = FIRSTTHREAD+1; i < multiThreadLevel; ++i) {
         if (pthread_join(threads[i], NULL) != 0){
             printErr("pthread_join failed\n",contexts + i);
         }

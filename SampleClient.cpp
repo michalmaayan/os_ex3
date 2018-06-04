@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     int num_of_in = 300;
     VString* arr[num_of_in];
     for (int i = 0; i < num_of_in; ++i){
-        arr[i] = new VString("abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz");
+        arr[i] = new VString("abcdefghijklmnopqrstuvwxyz   abcdefghijklmnopqrstuvwxyz abcdefghijklmnopqrstuvwxyz");
         inputVec.push_back({nullptr, arr[i]});
     }
 //    inputVec.push_back({nullptr, &s9});
