@@ -293,14 +293,14 @@ void runMapReduceFramework(const MapReduceClient& client,
     if (sem_init(&fillCount, 0, 0) != 0){
         printErr("sem_init failed\n", nullptr);
     }
-    for (unsigned int i = ST; i < multiThreadLevel; ++i) {
+    for (int i = ST; i < multiThreadLevel; ++i) {
         arrayOfInterVec.push_back({});
     }
-    for (unsigned int i = ST; i < multiThreadLevel; ++i) {
+    for (int i = ST; i < multiThreadLevel; ++i) {
         contexts[i] = {i, (unsigned int)multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic, &inputVec, &outputVec, &arrayOfInterVec, &client,
                        &Queue, &flag, &mutexQueue, &fillCount};
     }
-    for (unsigned int i = ST+1; i < multiThreadLevel; ++i) {
+    for (int i = ST+1; i < multiThreadLevel; ++i) {
         if (pthread_create(threads + i, NULL, threadLogic, contexts + i) != 0){
             printErr("pthread_create failed\n",contexts + i);
         }
