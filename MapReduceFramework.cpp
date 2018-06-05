@@ -105,7 +105,7 @@ bool is_eq(K2 *max, IntermediatePair &p){
 
 void* threadLogic (void* context) {
     auto *tc = (ThreadContext *) context;
-    int oldValue = (*(tc->atomicIndex))++;
+    unsigned int oldValue = (*(tc->atomicIndex))++;
 
     //map logic
     while (oldValue < tc->inputVec->size()) {
@@ -128,7 +128,7 @@ void* threadLogic (void* context) {
         bool isEmpty = check_empty_find_max(tc->arrayOfInterVec, tc->MT, &max);
         while(not isEmpty){
             IntermediateVec sameKey = {};
-            for (int i = FIRSTTHREAD; i < tc->MT; ++i) {
+            for (unsigned int i = FIRSTTHREAD; i < tc->MT; ++i) {
                 // in case the vector isn't empty
                 if (not(tc->arrayOfInterVec->at(i).empty())) {
                     while(is_eq(max, (tc->arrayOfInterVec->at(i).back()))) {
@@ -156,7 +156,7 @@ void* threadLogic (void* context) {
             }
         }
         //wakeup all the threads who went down
-        for (int i = FIRSTTHREAD; i < tc->MT; ++i) {
+        for (unsigned int i = FIRSTTHREAD; i < tc->MT; ++i) {
             if (sem_post(tc->fillCount) != 0){
                 printErr("sem_post err",tc);
             }
@@ -169,7 +169,7 @@ void* threadLogic (void* context) {
             printErr("sem_wait err",tc);
         }
         auto index = (*(tc->reduceAtomic))++ ;
-        if (index < tc->Queue->size()) {
+        if ((unsigned int)index < tc->Queue->size()) {
             if (sem_wait(tc->mutexQueue) != 0){
                 printErr("sem_wait err",tc);
             }
@@ -209,15 +209,15 @@ void runMapReduceFramework(const MapReduceClient& client,
     if (sem_init(&fillCount, 0, 0) != 0){
         printErr("sem_init failed\n", nullptr);
     }
-    for (int i = FIRSTTHREAD; i < multiThreadLevel; ++i) {
+    for (unsigned int i = FIRSTTHREAD; i < (unsigned int)multiThreadLevel; ++i) {
         arrayOfInterVec.push_back({});
     }
-    for (int i = FIRSTTHREAD; i < multiThreadLevel; ++i) {
+    for (unsigned int i = FIRSTTHREAD; i < (unsigned int)multiThreadLevel; ++i) {
         contexts[i] = {i, (unsigned int)multiThreadLevel, &barrier, &atomicIndex, &outAtomicIndex, &reducetAtomic,
                        &inputVec, &outputVec, &arrayOfInterVec, &client,
                        &Queue, &mutexQueue, &fillCount};
     }
-    for (int i = FIRSTTHREAD+1; i < multiThreadLevel; ++i) {
+    for (unsigned int i = FIRSTTHREAD+1; i < (unsigned int)multiThreadLevel; ++i) {
         if (pthread_create(threads + i, NULL, threadLogic, contexts + i) != 0){
             printErr("pthread_create failed\n",contexts + i);
         }
