@@ -34,17 +34,26 @@ typedef struct ReduceContext{
     std::atomic<int> *outAtomicIndex;
 }ReduceContext;
 
-void safeExit(ThreadContext* tc)
+void safeExit(ThreadContext* tc, bool err_exit)
 {
     if(tc == nullptr){
         exit(-1);
     }
     tc->Queue->clear();
+    if(sem_destroy(tc->fillCount) != 0){
+        std::cerr<<"sem_destory"<<std::endl;
+    }
+    if(sem_destroy(tc->mutexQueue) != 0){
+        std::cerr<<"sem_destory"<<std::endl;
+    }
+    if (err_exit){
+        exit(-1);
+    }
 }
 
 void printErr(std::string msg, ThreadContext *tc){
     std::cerr<<msg<<std::endl;
-    safeExit(tc);
+    safeExit(tc, true);
 }
 
 //for debug
@@ -228,5 +237,6 @@ void runMapReduceFramework(const MapReduceClient& client,
             printErr("pthread_join failed\n",contexts + i);
         }
     }
+    safeExit(contexts, false);
 
 }
